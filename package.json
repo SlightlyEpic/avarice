@@ -1,0 +1,29 @@
+{
+  "name": "avarice",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "biome check --write src",
+    "prepare": "husky"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.4.1",
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "husky": "^9.1.7",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2"
+  }
+}
