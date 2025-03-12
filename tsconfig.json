@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
+    "target": "ES6",
     "strict": true,
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"]
-    },   
+    },
   }
 }

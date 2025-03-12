@@ -1,2 +1,2 @@
 pnpm lint
-git add .
+git diff --name-only --cached | xargs git add
