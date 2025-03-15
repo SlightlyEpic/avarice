@@ -1,6 +1,6 @@
-import { Token } from './token';
+import { BaseToken } from './token';
 
-export class IdentifierToken extends Token<string, void> {
+export class IdentifierToken extends BaseToken<string, void> {
     constructor(
         public readonly name: string,
         public readonly file: string,

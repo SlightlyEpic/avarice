@@ -1,4 +1,4 @@
-import { Token } from './token';
+import { BaseToken } from './token';
 
 export const InstructionNames = new Set([
     'adc',
@@ -128,7 +128,7 @@ export function isInstructionName(s: string): s is InstructionName {
     return InstructionNames.has(s as InstructionName);
 }
 
-export class InstructionToken extends Token<InstructionName, void> {
+export class InstructionToken extends BaseToken<InstructionName, void> {
     constructor(
         public readonly name: InstructionName,
         public readonly file: string,

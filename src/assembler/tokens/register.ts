@@ -1,4 +1,4 @@
-import { Token } from './token';
+import { BaseToken } from './token';
 
 export const RegisterNames = new Set([
     'r0',
@@ -45,7 +45,7 @@ export type RegisterTokenData = {
     regIndex: number;
 };
 
-export class RegisterToken extends Token<RegisterName, RegisterTokenData> {
+export class RegisterToken extends BaseToken<RegisterName, RegisterTokenData> {
     constructor(
         public readonly name: string,
         public readonly file: string,
@@ -54,8 +54,12 @@ export class RegisterToken extends Token<RegisterName, RegisterTokenData> {
         public readonly end: number,
         public readonly raw: string,
     ) {
-        super('register', name, file, line, start, end, raw, {
-            regIndex: Number(name.substring(1)),
-        });
+        super('register', name, file, line, start, end, raw, RegisterToken.ParseRaw(raw));
+    }
+
+    static ParseRaw(raw: string): RegisterTokenData {
+        return {
+            regIndex: Number(raw.substring(1)),
+        };
     }
 }

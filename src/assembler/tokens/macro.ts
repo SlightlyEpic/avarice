@@ -1,4 +1,4 @@
-import { Token } from './token';
+import { BaseToken } from './token';
 
 export const MacroNames = new Set([
     'byte',
@@ -41,7 +41,7 @@ export function isMacroName(s: string): s is MacroName {
     return MacroNames.has(s as MacroName);
 }
 
-export class MacroToken extends Token<MacroName, void> {
+export class MacroToken extends BaseToken<MacroName, void> {
     constructor(
         public readonly name: MacroName,
         public readonly file: string,
