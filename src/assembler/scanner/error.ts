@@ -3,11 +3,11 @@ export class ScannerError {
         readonly code: string,
         readonly file: string,
         readonly line: number,
-        readonly linePos: number,
+        readonly lineOffset: number,
         readonly message: string,
     ) {}
 
     get [Symbol.toStringTag]() {
-        return `${this.file}:${this.line}:${this.linePos} - error ${this.code}: ${this.message}`;
+        return `${this.file}:${this.line}:${this.lineOffset} - error ${this.code}: ${this.message}`;
     }
 }
