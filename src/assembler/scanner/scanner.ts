@@ -1,6 +1,7 @@
 import { EofToken } from '../tokens/eof';
 import { ErrorToken } from '../tokens/error';
 import { MacroToken, isMacroName } from '../tokens/macro';
+import { NumericToken } from '../tokens/numeric';
 import { PunctuationToken, isPunctuationChar } from '../tokens/punctuation';
 import type { Token } from '../tokens/util/types';
 import { ScannerError } from './error';
@@ -16,10 +17,6 @@ export class Scanner {
     private tokens: Token[];
     private start: FilePosition;
     private current: FilePosition;
-    // private line = 1;
-    // private linePos = 0;
-    // private start = 0;
-    // private current = 0;
 
     private panic = false;
     private errors: ScannerError[] = [];
@@ -55,6 +52,10 @@ export class Scanner {
         return this.source[this.current.offset];
     }
 
+    private lookahead(d: number): string {
+        return this.current.offset + d < this.source.length ? this.source[this.current.offset + d] : '\0';
+    }
+
     private consume(): string {
         if (this.source[this.current.offset] === '\n') {
             this.current.line++;
@@ -63,6 +64,26 @@ export class Scanner {
             this.current.lineOffset++;
         }
         return this.source[this.current.offset++];
+    }
+
+    private consumeWord(): string {
+        let word = '';
+        while (
+            this.current.offset < this.source.length &&
+            ![' ', '\n', '\t'].includes(this.source[this.current.offset])
+        ) {
+            word += this.source[this.current.offset++];
+        }
+        return word;
+    }
+
+    private peekWord(): string {
+        let word = '';
+        let { offset } = this.current;
+        while (offset < this.source.length && ![' ', '\n', '\t'].includes(this.source[offset])) {
+            word += this.source[offset++];
+        }
+        return word;
     }
 
     private position(): FilePosition {
@@ -84,6 +105,17 @@ export class Scanner {
             case '(':
             case ')':
                 return this.punctuation();
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                this.numeric();
         }
     }
 
@@ -99,8 +131,7 @@ export class Scanner {
     // Parse specific tokens
 
     private macro(): MacroToken | ErrorToken {
-        let rawName = this.consume(); // Consume .
-        while (this.peek() !== ' ' && this.peek() !== '\n') rawName += this.consume();
+        const rawName = this.consumeWord();
         const name = rawName.toLowerCase();
 
         if (!isMacroName(name)) return this.addError('PARSE001', `Unknown macro .${rawName}`);
@@ -112,5 +143,14 @@ export class Scanner {
 
         if (!isPunctuationChar(raw)) return this.addError('PARSE002', `Unknown punctuation ${raw}`);
         return new PunctuationToken(raw, this.file, this.start.line, this.start.offset, this.current.offset, raw);
+    }
+
+    private numeric(): NumericToken | ErrorToken {
+        const raw = this.consumeWord();
+        try {
+            return new NumericToken('num', this.file, this.start.line, this.start.offset, this.current.offset, raw);
+        } catch (_err: unknown) {
+            return this.addError('PARSE003', `Invalid numeric literal ${raw}`);
+        }
     }
 }

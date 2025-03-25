@@ -1,9 +1,9 @@
 import { BaseToken } from './token';
 
-export type PunctuationName = '(' | ')' | ',' | '+' | '-';
+export type PunctuationName = '(' | ')' | ',';
 
 export function isPunctuationChar(c: string): c is PunctuationName {
-    return ['(', ')', ',', '+', '-'].includes(c);
+    return ['(', ')', ','].includes(c);
 }
 
 export class PunctuationToken extends BaseToken<PunctuationName, void> {

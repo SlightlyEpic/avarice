@@ -1,17 +1,16 @@
-import type { BinaryOperatorToken } from '../binary-operator';
 import type { EofToken } from '../eof';
 import type { ErrorToken } from '../error';
 import type { IdentifierToken } from '../identifier';
 import type { InstructionToken } from '../instruction';
 import type { MacroToken } from '../macro';
 import type { NumericToken } from '../numeric';
+import type { OperatorToken } from '../operator';
 import type { PunctuationToken } from '../punctuation';
 import type { RegisterToken } from '../register';
 import type { StringToken } from '../string';
-import type { UnaryOperatorToken } from '../unary-operator';
 
 export type TokenType =
-    | 'binary_operator'
+    | 'operator'
     | 'eof'
     | 'error'
     | 'identifier'
@@ -20,35 +19,32 @@ export type TokenType =
     | 'numeric'
     | 'punctuation'
     | 'register'
-    | 'string'
-    | 'unary_operator';
+    | 'string';
 
-export type TokenTypeClass<T extends TokenType> = T extends 'binary_operator'
-    ? BinaryOperatorToken
-    : T extends 'eof'
-      ? EofToken
-      : T extends 'error'
-        ? ErrorToken
-        : T extends 'identifier'
-          ? IdentifierToken
-          : T extends 'instruction'
-            ? InstructionToken
-            : T extends 'macro'
-              ? MacroToken
-              : T extends 'numeric'
-                ? NumericToken
+export type TokenTypeClass<T extends TokenType> = T extends 'eof'
+    ? EofToken
+    : T extends 'error'
+      ? ErrorToken
+      : T extends 'identifier'
+        ? IdentifierToken
+        : T extends 'instruction'
+          ? InstructionToken
+          : T extends 'macro'
+            ? MacroToken
+            : T extends 'numeric'
+              ? NumericToken
+              : T extends 'operator'
+                ? OperatorToken
                 : T extends 'punctuation'
                   ? PunctuationToken
                   : T extends 'register'
                     ? RegisterToken
                     : T extends 'string'
                       ? StringToken
-                      : T extends 'unary_operator'
-                        ? UnaryOperatorToken
-                        : never;
+                      : never;
 
 export type Token =
-    | BinaryOperatorToken
+    | OperatorToken
     | EofToken
     | IdentifierToken
     | InstructionToken
@@ -56,5 +52,4 @@ export type Token =
     | NumericToken
     | PunctuationToken
     | RegisterToken
-    | StringToken
-    | UnaryOperatorToken;
+    | StringToken;
