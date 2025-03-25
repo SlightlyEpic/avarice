@@ -2,8 +2,10 @@ import { EofToken } from '../tokens/eof';
 import { ErrorToken } from '../tokens/error';
 import { MacroToken, isMacroName } from '../tokens/macro';
 import { NumericToken } from '../tokens/numeric';
+import { OperatorToken, isOperatorChar, isOperatorName } from '../tokens/operator';
 import { PunctuationToken, isPunctuationChar } from '../tokens/punctuation';
 import type { Token } from '../tokens/util/types';
+import { isDigit, isWhitespaceChar } from '../util/string';
 import { ScannerError } from './error';
 
 type FilePosition = {
@@ -52,6 +54,15 @@ export class Scanner {
         return this.source[this.current.offset];
     }
 
+    private peekWord(): string {
+        let word = '';
+        let { offset } = this.current;
+        while (offset < this.source.length && ![' ', '\n', '\t'].includes(this.source[offset])) {
+            word += this.source[offset++];
+        }
+        return word;
+    }
+
     private lookahead(d: number): string {
         return this.current.offset + d < this.source.length ? this.source[this.current.offset + d] : '\0';
     }
@@ -77,15 +88,6 @@ export class Scanner {
         return word;
     }
 
-    private peekWord(): string {
-        let word = '';
-        let { offset } = this.current;
-        while (offset < this.source.length && ![' ', '\n', '\t'].includes(this.source[offset])) {
-            word += this.source[offset++];
-        }
-        return word;
-    }
-
     private position(): FilePosition {
         return { ...this.current };
     }
@@ -94,29 +96,15 @@ export class Scanner {
     private parseNext(): Token | undefined {
         this.start = this.position();
 
-        switch (this.peek().toLowerCase()) {
-            case '.':
-                return this.macro();
-            case '\n':
-            case ' ':
-                this.consume();
-                return;
-            case ',':
-            case '(':
-            case ')':
-                return this.punctuation();
-            case '0':
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9':
-                this.numeric();
+        const c = this.peek().toLowerCase();
+        if (c === '.') return this.macro();
+        if (isWhitespaceChar(c)) {
+            this.consume();
+            return;
         }
+        if (isPunctuationChar(c)) return this.punctuation();
+        if (isDigit(c)) return this.numeric();
+        if (isOperatorChar(c)) return this.operator();
     }
 
     private *parseTokens(): Generator<Token> {
@@ -152,5 +140,32 @@ export class Scanner {
         } catch (_err: unknown) {
             return this.addError('PARSE003', `Invalid numeric literal ${raw}`);
         }
+    }
+
+    private operator(): OperatorToken | ErrorToken {
+        let raw = this.consume();
+        if (raw !== '>' && raw !== '<') {
+            if (isOperatorName(raw))
+                return new OperatorToken(raw, this.file, this.start.line, this.start.offset, this.current.offset, raw);
+            return this.addError('PARSE004', `Unknown operator ${raw}`);
+        }
+
+        raw += this.consume();
+        if (raw === '<<') {
+            return new OperatorToken(raw, this.file, this.start.line, this.start.offset, this.current.offset, raw);
+        }
+        if (raw === '>>') {
+            if (this.peek() === '>') raw += this.consume();
+            return new OperatorToken(
+                raw as '>>' | '>>>',
+                this.file,
+                this.start.line,
+                this.start.offset,
+                this.current.offset,
+                raw,
+            );
+        }
+
+        return this.addError('PARSE004', `Unknown operator ${raw}`);
     }
 }
