@@ -19,13 +19,13 @@ type FilePosition = {
 };
 
 export class Scanner {
-    private finished = false;
-    private tokens: Token[];
+    finished = false;
+    tokens: Token[];
     private start: FilePosition;
     private current: FilePosition;
 
-    private panic = false;
-    private errors: ScannerError[] = [];
+    panic = false;
+    errors: ScannerError[] = [];
 
     constructor(
         readonly file: string,
@@ -41,11 +41,14 @@ export class Scanner {
             lineOffset: 0,
             offset: 0,
         };
-        this.tokens = Array.from(this.parseTokens());
+        this.tokens = [];
     }
 
-    isFinished() {
-        return this.finished;
+    scan() {
+        if (!this.finished) {
+            this.tokens = Array.from(this.scanTokens());
+            this.finished = true;
+        }
     }
 
     private addError(code: string, message: string): ErrorToken {
@@ -101,7 +104,7 @@ export class Scanner {
     }
 
     // TODO
-    private parseNext(): Token | undefined {
+    private scanNext(): Token | undefined {
         this.start = this.position();
 
         const c = this.peek().toLowerCase();
@@ -122,16 +125,16 @@ export class Scanner {
         return this.identifier();
     }
 
-    private *parseTokens(): Generator<Token> {
+    private *scanTokens(): Generator<Token> {
         while (this.current.offset !== this.source.length) {
-            const token = this.parseNext();
+            const token = this.scanNext();
             if (token) yield token;
         }
 
         yield new EofToken(this.file, this.start.line, this.start.offset, this.start.offset, 'EOF');
     }
 
-    // Parse specific tokens
+    // Scan specific tokens
 
     private identifier(): IdentifierToken | ErrorToken {
         const word = this.consumeWord();
@@ -187,7 +190,7 @@ export class Scanner {
             );
         }
 
-        return this.addError('PARSE004', `Unknown operator ${raw}`);
+        return this.addError('SCAN004', `Unknown operator ${raw}`);
     }
 
     private punctuation(): PunctuationToken | ErrorToken {
@@ -204,7 +207,7 @@ export class Scanner {
     }
 
     private string(): StringToken | ErrorToken {
-        let raw = this.consume(); // consume "
+        let raw = this.consume(); // consume opening "
         let escapeNext = false;
         while (escapeNext || this.peek() !== '"') {
             if (escapeNext) {
@@ -220,6 +223,7 @@ export class Scanner {
                 raw += this.consume();
             }
         }
+        raw += this.consume(); // consume closing "
 
         return new StringToken('string', this.file, this.start.line, this.start.offset, this.current.offset, raw);
     }
