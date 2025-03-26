@@ -84,6 +84,8 @@ export class Scanner {
     }
 
     private consumeWord(): string {
+        if (this.current.offset >= this.source.length)
+            throw new Error('SCAN000: Unexpected end of file while scanning.');
         let word = '';
         while (
             this.current.offset < this.source.length &&
@@ -117,7 +119,7 @@ export class Scanner {
         const word = this.peekWord().toLowerCase();
         if (isRegisterName(word)) return this.register();
         if (isInstructionName(word)) return this.instruction();
-        // return this.identifier();
+        return this.identifier();
     }
 
     private *parseTokens(): Generator<Token> {
@@ -131,9 +133,12 @@ export class Scanner {
 
     // Parse specific tokens
 
-    // private identifier(): IdentifierToken | ErrorToken {
-    //     // TODO
-    // }
+    private identifier(): IdentifierToken | ErrorToken {
+        const word = this.consumeWord();
+        if (!IdentifierToken.IsValidIdentifier(word))
+            return this.addError('SCAN007', `Invalid identifier name ${word}`);
+        return new IdentifierToken(word, this.file, this.start.line, this.start.offset, this.current.offset, word);
+    }
 
     private instruction(): InstructionToken | ErrorToken {
         const word = this.consumeWord();
