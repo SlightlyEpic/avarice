@@ -1,12 +1,12 @@
 import { EofToken } from '../tokens/eof';
 import { ErrorToken } from '../tokens/error';
 import { IdentifierToken } from '../tokens/identifier';
-import { InstructionToken } from '../tokens/instruction';
+import { InstructionToken, isInstructionName } from '../tokens/instruction';
 import { MacroToken, isMacroName } from '../tokens/macro';
 import { NumericToken } from '../tokens/numeric';
 import { OperatorToken, isOperatorChar, isOperatorName } from '../tokens/operator';
 import { PunctuationToken, isPunctuationChar } from '../tokens/punctuation';
-import { RegisterToken } from '../tokens/register';
+import { RegisterToken, isRegisterName } from '../tokens/register';
 import { StringToken } from '../tokens/string';
 import type { Token } from '../tokens/util/types';
 import { isDigit, isWhitespaceChar } from '../util/string';
@@ -103,6 +103,7 @@ export class Scanner {
         this.start = this.position();
 
         const c = this.peek().toLowerCase();
+
         if (c === '.') return this.macro();
         if (isWhitespaceChar(c)) {
             this.consume();
@@ -112,6 +113,11 @@ export class Scanner {
         if (isDigit(c)) return this.numeric();
         if (isOperatorChar(c)) return this.operator();
         if (c === '"') return this.string();
+
+        const word = this.peekWord().toLowerCase();
+        if (isRegisterName(word)) return this.register();
+        if (isInstructionName(word)) return this.instruction();
+        // return this.identifier();
     }
 
     private *parseTokens(): Generator<Token> {
@@ -129,9 +135,11 @@ export class Scanner {
     //     // TODO
     // }
 
-    // private instruction(): InstructionToken | ErrorToken {
-    //     // TODO
-    // }
+    private instruction(): InstructionToken | ErrorToken {
+        const word = this.consumeWord();
+        if (!isInstructionName(word)) return this.addError('SCAN006', `Invalid instruction name ${word}`);
+        return new InstructionToken(word, this.file, this.start.line, this.start.offset, this.current.offset, word);
+    }
 
     private macro(): MacroToken | ErrorToken {
         const rawName = this.consumeWord();
@@ -184,9 +192,11 @@ export class Scanner {
         return new PunctuationToken(raw, this.file, this.start.line, this.start.offset, this.current.offset, raw);
     }
 
-    // private register(): RegisterToken | ErrorToken {
-    //     // TODO
-    // }
+    private register(): RegisterToken | ErrorToken {
+        const word = this.consumeWord();
+        if (!isRegisterName(word)) return this.addError('SCAN005', `Invalid register name ${word}`);
+        return new RegisterToken(word, this.file, this.start.line, this.start.offset, this.current.offset, word);
+    }
 
     private string(): StringToken | ErrorToken {
         let raw = this.consume(); // consume "
