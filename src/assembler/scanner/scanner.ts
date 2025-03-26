@@ -1,9 +1,13 @@
 import { EofToken } from '../tokens/eof';
 import { ErrorToken } from '../tokens/error';
+import { IdentifierToken } from '../tokens/identifier';
+import { InstructionToken } from '../tokens/instruction';
 import { MacroToken, isMacroName } from '../tokens/macro';
 import { NumericToken } from '../tokens/numeric';
 import { OperatorToken, isOperatorChar, isOperatorName } from '../tokens/operator';
 import { PunctuationToken, isPunctuationChar } from '../tokens/punctuation';
+import { RegisterToken } from '../tokens/register';
+import { StringToken } from '../tokens/string';
 import type { Token } from '../tokens/util/types';
 import { isDigit, isWhitespaceChar } from '../util/string';
 import { ScannerError } from './error';
@@ -68,6 +72,8 @@ export class Scanner {
     }
 
     private consume(): string {
+        if (this.current.offset >= this.source.length)
+            throw new Error('SCAN000: Unexpected end of file while scanning.');
         if (this.source[this.current.offset] === '\n') {
             this.current.line++;
             this.current.lineOffset = 0;
@@ -105,6 +111,7 @@ export class Scanner {
         if (isPunctuationChar(c)) return this.punctuation();
         if (isDigit(c)) return this.numeric();
         if (isOperatorChar(c)) return this.operator();
+        if (c === '"') return this.string();
     }
 
     private *parseTokens(): Generator<Token> {
@@ -118,19 +125,20 @@ export class Scanner {
 
     // Parse specific tokens
 
+    // private identifier(): IdentifierToken | ErrorToken {
+    //     // TODO
+    // }
+
+    // private instruction(): InstructionToken | ErrorToken {
+    //     // TODO
+    // }
+
     private macro(): MacroToken | ErrorToken {
         const rawName = this.consumeWord();
         const name = rawName.toLowerCase();
 
-        if (!isMacroName(name)) return this.addError('PARSE001', `Unknown macro .${rawName}`);
+        if (!isMacroName(name)) return this.addError('SCAN001', `Unknown macro .${rawName}`);
         return new MacroToken(name, this.file, this.start.line, this.start.offset, this.current.offset, rawName);
-    }
-
-    private punctuation(): PunctuationToken | ErrorToken {
-        const raw = this.consume();
-
-        if (!isPunctuationChar(raw)) return this.addError('PARSE002', `Unknown punctuation ${raw}`);
-        return new PunctuationToken(raw, this.file, this.start.line, this.start.offset, this.current.offset, raw);
     }
 
     private numeric(): NumericToken | ErrorToken {
@@ -138,7 +146,7 @@ export class Scanner {
         try {
             return new NumericToken('num', this.file, this.start.line, this.start.offset, this.current.offset, raw);
         } catch (_err: unknown) {
-            return this.addError('PARSE003', `Invalid numeric literal ${raw}`);
+            return this.addError('SCAN003', `Invalid numeric literal ${raw}`);
         }
     }
 
@@ -147,7 +155,7 @@ export class Scanner {
         if (raw !== '>' && raw !== '<') {
             if (isOperatorName(raw))
                 return new OperatorToken(raw, this.file, this.start.line, this.start.offset, this.current.offset, raw);
-            return this.addError('PARSE004', `Unknown operator ${raw}`);
+            return this.addError('SCAN004', `Unknown operator ${raw}`);
         }
 
         raw += this.consume();
@@ -167,5 +175,37 @@ export class Scanner {
         }
 
         return this.addError('PARSE004', `Unknown operator ${raw}`);
+    }
+
+    private punctuation(): PunctuationToken | ErrorToken {
+        const raw = this.consume();
+
+        if (!isPunctuationChar(raw)) return this.addError('SCAN002', `Unknown punctuation ${raw}`);
+        return new PunctuationToken(raw, this.file, this.start.line, this.start.offset, this.current.offset, raw);
+    }
+
+    // private register(): RegisterToken | ErrorToken {
+    //     // TODO
+    // }
+
+    private string(): StringToken | ErrorToken {
+        let raw = this.consume(); // consume "
+        let escapeNext = false;
+        while (escapeNext || this.peek() !== '"') {
+            if (escapeNext) {
+                const c = this.peek();
+                if (c === 'n') raw += '\n';
+                else if (c === 't') raw += '\t';
+                else if (c === '\\') raw += '\\';
+                else raw += c;
+                escapeNext = false;
+            } else if (this.peek() === '\\') {
+                escapeNext = true;
+            } else {
+                raw += this.consume();
+            }
+        }
+
+        return new StringToken('string', this.file, this.start.line, this.start.offset, this.current.offset, raw);
     }
 }
